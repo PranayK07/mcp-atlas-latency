@@ -34,6 +34,23 @@ def configure_litellm():
 configure_litellm()
 
 
+def strip_all_additional_properties(schema: any) -> any:
+    """Recursively remove all `additionalProperties` keys from the schema."""
+    if isinstance(schema, dict):
+        # Remove 'additionalProperties' if it exists
+        schema.pop("additionalProperties", None)
+
+        # Recurse into all values
+        for key, value in schema.items():
+            strip_all_additional_properties(value)
+
+    elif isinstance(schema, list):
+        for item in schema:
+            strip_all_additional_properties(item)
+
+    return schema
+
+
 async def create_completion(
     model: str,
     messages: List[Message],
@@ -41,9 +58,22 @@ async def create_completion(
 ) -> LLMResponse:
     """Create a completion using LiteLLM."""
 
-    # Convert our schema to LiteLLM format
-    litellm_messages = [msg.model_dump() for msg in messages]
-    litellm_tools = [tool.model_dump() for tool in tools] if tools else None
+    # Convert our schema to LiteLLM form at
+    if "gemini" in model.lower():
+        litellm_messages = [
+            (
+                msg.model_dump()
+                if not isinstance(msg, AssistantMessage)
+                else msg.original_message.model_dump()
+            )
+            for msg in messages
+        ]
+        litellm_tools = [
+            strip_all_additional_properties(tool.model_dump()) for tool in tools
+        ]
+    else:
+        litellm_messages = [msg.model_dump() for msg in messages]
+        litellm_tools = [tool.model_dump() for tool in tools]
 
     try:
         response = await litellm.acompletion(
@@ -76,6 +106,7 @@ async def create_completion(
             role="assistant",
             content=response.choices[0].message.content,
             tool_calls=tool_calls,
+            original_message=response.choices[0].message,
         )
 
         return LLMResponse(message=assistant_message)

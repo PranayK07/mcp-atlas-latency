@@ -1,5 +1,6 @@
 """Schema definitions for MCP evaluation."""
 
+from litellm.types.utils import Message as MessageType
 from typing import Dict, List, Literal, Optional, Union, Any
 from pydantic import BaseModel, Field
 
@@ -37,6 +38,7 @@ class AssistantMessage(BaseModel):
     """Assistant message."""
 
     role: Literal["assistant"]
+    original_message: MessageType
     content: Optional[str] = None
     tool_calls: Optional[List[ToolCall]] = None
 
