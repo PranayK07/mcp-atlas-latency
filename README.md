@@ -202,6 +202,11 @@ Note: Some services are paid and require billing setup.
 curl -s http://localhost:1984/enabled-servers | jq -c
 ```
 
+To do a deeper check — verifying that each server can make a real API call and that all required keys are valid — run the health-check script. It tests all 36 servers and reports pass/fail, flagging any keys that are missing from `.env`.
+```bash
+uv run test_servers.py
+```
+
 If the docker container does not shut down gracefully, use `docker ps` and `docker kill <ID>` to force it to shut down.
 
 ### 8. Evaluate with the full HuggingFace dataset
