@@ -97,8 +97,9 @@ class GenerationResult:
 class AsyncMCPTrajectoryGenerator:
     """Fully async MCP trajectory generator - each task is independent"""
 
-    def __init__(self, llm_model: str):
+    def __init__(self, llm_model: str, extra_body: dict = None):
         self.llm_model = llm_model
+        self.extra_body = extra_body or {}
         self.csv_lock = asyncio.Lock()  # For thread-safe CSV writing
 
     async def __aenter__(self):
@@ -252,6 +253,7 @@ class AsyncMCPTrajectoryGenerator:
             "messages": messages,
             "enabledTools": enabled_tools,
             "enableThinkingTokens": False,
+            **({"extraBody": self.extra_body} if self.extra_body else {}),
         }
         headers = {"Content-Type": "application/json"}
 
@@ -750,6 +752,12 @@ def parse_arguments():
         default=10,
         help="Maximum concurrent API requests (default: 10, recommended range: 10-30)",
     )
+    parser.add_argument(
+        "--extra-body",
+        type=str,
+        default=None,
+        help='JSON string of extra body params to pass to the completion service (e.g. \'{"reasoning_effort": "xhigh", "allowed_openai_params": ["reasoning_effort"]}\')',
+    )
 
     return parser.parse_args()
 
@@ -866,7 +874,9 @@ async def main():
             logging.warning(f"Warning: Could not read existing output: {e}")
 
     # Run evaluation
-    async with AsyncMCPTrajectoryGenerator(args.model) as generator:
+    import json as _json
+    extra_body = _json.loads(args.extra_body) if args.extra_body else {}
+    async with AsyncMCPTrajectoryGenerator(args.model, extra_body=extra_body) as generator:
         results_df = await generator.evaluate_dataset_async(
             df, output_csv, processed_ids, args.concurrency
         )

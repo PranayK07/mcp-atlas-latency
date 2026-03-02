@@ -55,6 +55,7 @@ async def create_completion(
     model: str,
     messages: List[Message],
     tools: List[ToolCallSchema],
+    extra_body: Optional[Dict[str, Any]] = None,
 ) -> LLMResponse:
     """Create a completion using LiteLLM."""
 
@@ -75,14 +76,25 @@ async def create_completion(
         litellm_messages = [msg.model_dump() for msg in messages]
         litellm_tools = [tool.model_dump() for tool in tools]
 
+    # These specific models route through an internal proxy that expects the
+    # "openai/" prefix in the model name. LiteLLM strips one "openai/" prefix
+    # when a custom api_base is set, so we double-prepend it here so the proxy
+    # receives the correct name (e.g. "openai/macaroni-alpha").
+    _PROXY_PREFIX_MODELS = ("openai/macaroni-alpha", "openai/galapagos-alpha")
+    if config.LLM_BASE_URL and model in _PROXY_PREFIX_MODELS:
+        proxy_model = "openai/" + model
+    else:
+        proxy_model = model
+
     try:
         response = await litellm.acompletion(
-            model=model,
+            model=proxy_model,
             messages=litellm_messages,
             tools=litellm_tools,
             api_key=config.LLM_API_KEY,
             api_base=config.LLM_BASE_URL,
             timeout=config.DEFAULT_TIMEOUT,
+            **({"extra_body": extra_body} if extra_body else {}),
         )
 
         # Convert response back to our format

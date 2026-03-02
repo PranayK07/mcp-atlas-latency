@@ -38,6 +38,7 @@ async def run_mcp_eval(
     model: str,
     messages: List[Message],
     max_turns: int,
+    extra_body: Optional[Dict[str, Any]] = None,
 ) -> AsyncGenerator[AgentOutput, None]:
     """
     Simple MCP evaluation loop that keeps calling tools until the model decides there are no more tools to call.
@@ -57,6 +58,7 @@ async def run_mcp_eval(
                 model=model,
                 messages=all_messages,
                 tools=transformed_tools,
+                extra_body=extra_body,
             )
 
             assistant_message = result.message
@@ -132,5 +134,6 @@ async def handle_run_mcp_eval(
         model=body.model,
         messages=body.messages,
         max_turns=body.max_turns,
+        extra_body=body.extra_body,
     ):
         yield output

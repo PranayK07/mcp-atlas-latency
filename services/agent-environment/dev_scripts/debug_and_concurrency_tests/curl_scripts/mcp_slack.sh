@@ -17,7 +17,7 @@ curl -w " HTTP_STATUS:%{http_code}\n" -X POST http://localhost:1984/call-tool \
     "tool_name": "slack_conversations_history",
     "tool_args": {
       "channel_id": "#movie-suggestions",
-      "limit": "30d",
+      "limit": "90d",
       "include_activity_messages": false
     }
   }' 
