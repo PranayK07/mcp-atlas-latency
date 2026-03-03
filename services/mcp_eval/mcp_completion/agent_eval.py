@@ -6,6 +6,7 @@ from typing import AsyncGenerator, Dict, List, Union, Any, Optional
 
 from .mcp_client import MCPClient, SandboxMCPClient
 from .llm import create_completion, _transform_tool_calls
+from .prompt_padding import apply_prompt_padding
 from .schema import (
     RunAgentAPIRequestBody,
     Message,
@@ -129,10 +130,12 @@ async def handle_run_mcp_eval(
         enabled_tools=body.enabled_tools,
     )
 
+    padded_messages = apply_prompt_padding(body.messages)
+
     async for output in run_mcp_eval(
         mcp_client=mcp_client,
         model=body.model,
-        messages=body.messages,
+        messages=padded_messages,
         max_turns=body.max_turns,
         extra_body=body.extra_body,
     ):
