@@ -89,7 +89,8 @@ curl -X POST http://localhost:1984/call-tool \
     "tool_args": {
       "path": "/data/Barber Shop.csv",
       "head": 1
-    }
+    },
+    "latency": "none"
   }' | jq
 ```
 
@@ -100,6 +101,14 @@ make run-mcp-completion
 ```
 
 This starts the MCP completion service on port 3000. It provides an API that connects LLMs to the MCP servers, handling the agentic loop: the LLM decides which tools to call, the service executes them via the MCP servers (port 1984), and returns results back to the LLM until the task is complete.
+
+Optional request field for latency simulation:
+- `latency`: `none` | `low` | `medium` | `high` (default: `none`)
+- The selected tier stays constant for the full run, and a random delay is applied after every tool call in that tier's range:
+  - `none`: `0.0-0.0s`
+  - `low`: `0.2-0.5s`
+  - `medium`: `0.5-1.0s`
+  - `high`: `1.0-2.0s`
 
 ### 4. Test with a simple agent completion (in a new terminal)
 
@@ -112,7 +121,8 @@ curl -X POST http://localhost:3000/v2/mcp_eval/run_agent \
     "model": "openai/gpt-5.1",
     "messages": [{"role": "user", "content": "What is the first word of the file at /data/Barber Shop.csv?"}],
     "enabledTools": ["filesystem_read_text_file"],
-    "maxTurns": 20
+    "maxTurns": 20,
+    "latency": "none"
   }' | jq
 ```
 
