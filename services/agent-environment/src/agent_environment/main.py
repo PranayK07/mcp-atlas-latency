@@ -1,7 +1,7 @@
 import asyncio
 import contextlib
 import mcp
-from typing import Any, AsyncGenerator, Dict
+from typing import Any, AsyncGenerator, Dict, Literal
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -82,6 +82,7 @@ class CallToolRequest(BaseModel):
     tool_name: str
     tool_args: Dict[str, Any]
     use_cache: bool = True
+    latency: Literal["none", "low", "medium", "high"] = "none"
 
 
 @contextlib.asynccontextmanager

@@ -117,6 +117,7 @@ class RunAgentAPIRequestBody(BaseModel):
     enabled_tools: List[str] = Field(alias="enabledTools")
     max_turns: int = Field(20, alias="maxTurns")
     extra_body: Optional[Dict[str, Any]] = Field(None, alias="extraBody")
+    latency: Literal["none", "low", "medium", "high"] = "none"
 
     class Config:
         populate_by_name = True

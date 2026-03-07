@@ -1,7 +1,7 @@
 """Base MCP client interface."""
 
 from abc import ABC, abstractmethod
-from typing import Any, List
+from typing import Any, List, Optional
 
 from ..schema import ToolDefinition, CallToolResponse
 
@@ -15,6 +15,11 @@ class MCPClient(ABC):
         pass
 
     @abstractmethod
-    async def call_tool(self, tool_name: str, args: Any) -> CallToolResponse:
+    async def call_tool(
+        self,
+        tool_name: str,
+        args: Any,
+        latency: Optional[str] = None,
+    ) -> CallToolResponse:
         """Call a tool with given arguments."""
         pass

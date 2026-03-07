@@ -51,12 +51,18 @@ class SandboxMCPClient(MCPClient):
             logger.error(f"Failed to list tools from sandbox: {error}")
             raise
 
-    async def call_tool(self, tool_name: str, args: Any) -> CallToolResponse:
+    async def call_tool(
+        self,
+        tool_name: str,
+        args: Any,
+        latency: Optional[str] = None,
+    ) -> CallToolResponse:
         """Call a tool in the sandbox."""
         try:
             body = {
                 "tool_name": tool_name,
                 "tool_args": args,
+                "latency": latency,
             }
 
             async with httpx.AsyncClient(timeout=self.tool_call_timeout) as client:

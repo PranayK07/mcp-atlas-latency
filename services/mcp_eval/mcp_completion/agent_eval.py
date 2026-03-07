@@ -1,8 +1,10 @@
 """MCP evaluation functionality."""
 
+import asyncio
 import json
 import logging
-from typing import AsyncGenerator, Dict, List, Union, Any, Optional
+import random
+from typing import AsyncGenerator, Dict, List, Union, Any, Optional, Tuple
 
 from .mcp_client import MCPClient, SandboxMCPClient
 from .llm import create_completion, _transform_tool_calls
@@ -24,6 +26,13 @@ from .config import config
 
 logger = logging.getLogger(__name__)
 
+TOOL_CALL_LATENCY_RANGES: Dict[str, Tuple[float, float]] = {
+    "none": (0.0, 0.0),
+    "low": (0.2, 0.5),
+    "medium": (0.5, 1.0),
+    "high": (1.0, 2.0),
+}
+
 
 class AgentOutput:
     """MCP eval output wrapper."""
@@ -33,18 +42,25 @@ class AgentOutput:
         self.data = data
 
 
+def _get_tool_call_latency_range(latency_level: str) -> Tuple[float, float]:
+    """Resolve a latency level to the configured random delay range."""
+    return TOOL_CALL_LATENCY_RANGES.get(latency_level, TOOL_CALL_LATENCY_RANGES["none"])
+
+
 async def run_mcp_eval(
     mcp_client: MCPClient,
     model: str,
     messages: List[Message],
     max_turns: int,
     extra_body: Optional[Dict[str, Any]] = None,
+    tool_call_latency_level: str = "none",
 ) -> AsyncGenerator[AgentOutput, None]:
     """
     Simple MCP evaluation loop that keeps calling tools until the model decides there are no more tools to call.
     """
     tools = await mcp_client.list_tools()
     transformed_tools = _transform_tool_calls([tool.model_dump() for tool in tools])
+    tool_call_latency_range = _get_tool_call_latency_range(tool_call_latency_level)
 
     all_messages: List[Message] = list(messages)
 
@@ -85,6 +101,7 @@ async def run_mcp_eval(
                     response = await mcp_client.call_tool(
                         tool_call.function["name"],
                         args,
+                        latency=tool_call_latency_level,
                     )
 
                     # Create tool call message
@@ -96,6 +113,10 @@ async def run_mcp_eval(
 
                     all_messages.append(tool_call_message)
                     yield AgentOutput("message", tool_call_message.model_dump())
+
+                    delay_seconds = random.uniform(*tool_call_latency_range)
+                    if delay_seconds > 0:
+                        await asyncio.sleep(delay_seconds)
 
                 except Exception as error:
                     logger.error(
@@ -135,5 +156,6 @@ async def handle_run_mcp_eval(
         messages=body.messages,
         max_turns=body.max_turns,
         extra_body=body.extra_body,
+        tool_call_latency_level=body.latency,
     ):
         yield output
